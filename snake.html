@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 800px;
+            height: 600px;
+            background-color: orange;
+            position: relative;
+        }
+
+        #map div {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    //食物
+    (function () {
+
+        function Food(options) {
+            this.width = options.width || 20;
+            this.height = options.height || 20;
+            this.bgColor = options.bgColor || "red";
+            this.map = options.map;
+            this.weiZhi = options.weiZhi;
+            this.x = 0;
+            this.y = 0;
+            this.element = null;
+        }
+
+        Food.prototype.init = function () {
+            if (this.element) {
+                this.map.removeChild(this.element);
+            }
+            var div = document.createElement("div");
+            div.style.width = this.width + "px";
+            div.style.height = this.height + "px";
+            div.style.backgroundColor = this.bgColor;
+            this.element = div;
+            this.map.appendChild(div);
+            this.sports();
+        }
+
+        Food.prototype.sports = function () {
+            this.x = Math.floor(Math.random() * (this.map.offsetWidth / this.width));
+            this.y = Math.floor(Math.random() * (this.map.offsetHeight / this.height));
+            this.element.style.left = this.x * this.width + "px";
+            this.element.style.top = this.y * this.height + "px";
+        }
+
+        window.Food = Food;
+    })();
+    //小蛇
+    (function () {
+
+        function Snake(options) {
+            this.width = options.width || 20;
+            this.height = options.height || 20;
+            this.body = [
+                {x: 3, y: 1, color: "red"},
+                {x: 2, y: 1, color: "white"},
+                {x: 1, y: 1, color: "white"}
+            ];
+            this.map = options.map;
+            this.shift = options.shift || "right";
+            this.element = [];
+        }
+
+        Snake.prototype.init = function () {
+            for (i = 0; i < this.element.length; i++) {
+                this.map.removeChild(this.element[i])
+            }
+            ;
+            this.element = [];
+            var div, body;
+            for (var i = 0; i < this.body.length; i++) {
+
+                div = document.createElement("div");
+                div.style.width = this.width + "px";
+                div.style.height = this.height + "px";
+
+                body = this.body[i];
+
+                div.style.left = body.x * this.width + "px";
+                div.style.top = body.y * this.height + "px";
+                div.style.backgroundColor = body.color;
+                this.map.appendChild(div);
+                this.element.push(div);
+            }
+        }
+
+        Snake.prototype.move = function () {
+            var body = this.body;
+            for (var i = body.length - 1; i >= 1; i--) {
+                body[i].x = body[i - 1].x;
+                body[i].y = body[i - 1].y;
+            }
+//            body[0].x++;
+            var shift = this.shift;
+            var bodyB = this.body[0];
+            switch (shift) {
+                case "right":
+                    bodyB.x++;
+                    break;
+                case "left":
+                    bodyB.x--;
+                    break;
+                case "up":
+                    bodyB.y--;
+                    break;
+                case "down":
+                    bodyB.y++;
+                    break;
+            }
+        }
+
+        window.Snake = Snake;
+    })();
+    //游戏控制
+    (function (Food, Snake) {
+
+        var that;
+        //获取元素
+        function Game(options) {
+            this.map = options.map;
+            this.Food = options.Food;
+            this.Snake = options.Snake;
+        }
+
+        //控制中心
+        Game.prototype.sports = function () {
+            this.Food.init();
+            this.Snake.init();
+            this.SnakeRun();
+            this.target();
+        }
+        //移动
+        Game.prototype.SnakeRun = function () {
+            that = this;
+            var timer = null;
+            timer = setInterval(function () {
+                var Food = that.Food;
+                var Snake = that.Snake;
+                var map = that.map;
+
+                var lastX = Snake.body[Snake.body.length - 1].x;
+                var lastY = Snake.body[Snake.body.length - 1].y;
+
+                Snake.move();
+
+                //设置蛇吃到食物时状态
+                if (Snake.body[0].x === Food.x && Snake.body[0].y === Food.y) {
+                    Snake.body.push({x: lastX, y: lastY, color: "white"})
+                    Food.init();
+                }
+
+                //超出边界则结束游戏
+                var maxX = map.offsetWidth / Snake.width - 1;
+                var maxY = map.offsetHeight / Snake.height - 1;
+
+                if (Snake.body[0].x < 0 || Snake.body[0].x > maxX || Snake.body[0].y < 0 || Snake.body[0].y > maxY) {
+                    clearInterval(timer);
+                    alert("Game over");
+                    return;
+                }
+
+                //吃到自己游戏结束
+                for (var i = 4; i < Snake.body.length; i++) {
+                    if(Snake.body[0].x===Snake.body[i].x&&Snake.body[0].y===Snake.body[i].y){
+                        clearInterval(timer);
+                        alert("Game over");
+                        return;
+                    }
+                }
+
+                Snake.init();
+
+            }, 100)
+        }
+        //方向
+        Game.prototype.target = function () {
+            that = this;
+            document.onkeydown = function (e) {
+                var e = e || window.event;
+                var SnakeS = that.Snake.shift;
+                switch (true) {
+                    case e.keyCode === 37 && SnakeS !== "right":
+                        that.Snake.shift = "left";
+                        break;
+                    case e.keyCode === 38 && SnakeS !== "down":
+                        that.Snake.shift = "up";
+                        break;
+                    case e.keyCode === 39 && SnakeS !== "left":
+                        that.Snake.shift = "right";
+                        break;
+                    case e.keyCode === 40 && SnakeS !== "up":
+                        that.Snake.shift = "down";
+                        break;
+                }
+
+            }
+        }
+
+        var map = document.getElementById("map");
+        var Game = new Game({
+            map: map,
+            Food: new Food({map: map}),
+            Snake: new Snake({map: map})
+        })
+        Game.sports();
+    })(Food, Snake);
+
+
+</script>
+</body>
+</html>
